@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>AMApplicationBuild</key>
-	<string>512</string>
+	<string>492</string>
 	<key>AMApplicationVersion</key>
 	<string>2.10</string>
 	<key>AMDocumentVersion</key>
@@ -51,7 +51,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>source</key>
-					<string>-- QuickMP4 - v1.1 --- Max Laurie 15/02/22-- Converts videos to a ~10mbps H264 with 2 channel audio.-- Requires ffmpeg and ffprobe installed to /usr/local/bin/-- 1.1 changelog-- Fixed the ffprobe shell script (previously wasn't actually working)-- Put the loop in to a try block so errors are caught in a nice wayon run {input, parameters}		-- requirement check	set requirements to {"ffmpeg", "ffprobe"}	set notinstalledList to requirementsCheck(requirements)	if length of notinstalledList is greater than 0 then		display dialog "The following are required and not installed: " &amp; return &amp; return &amp; notinstalledList as text with title "QuickMP4" buttons {"Close"} with icon stop		return	end if		set ffprobe to "/usr/local/bin/ffprobe "	set ffmpeg to "/usr/local/bin/ffmpeg -y -i "		-- create empty list for tracking files worked on	set filesConverted to {}		repeat with inputfile in input		try			-- set filepath, dirname, basename, output name and get no of audio tracks for input file			set inputfile to POSIX path of inputfile			set filepath to do shell script "dirname " &amp; quoted form of inputfile			set basename to do shell script "basename " &amp; quoted form of inputfile			set extension to do shell script "echo " &amp; quoted form of inputfile &amp; " | awk -F . '{print $NF}'"			set fileandext to splitText(basename, ".")			set outputbasename to item 1 of fileandext &amp; ".mp4"			set output to filepath &amp; "/" &amp; outputbasename			set audiotracks to do shell script ffprobe &amp; "-v error -select_streams a -show_entries stream=index -of csv=p=0 " &amp; quoted form of inputfile &amp; " | wc -w | sed 's/^ *//g'"						set audioarray to splitText(audiotracks, " ")			set numberofaudiotracks to length of audioarray						do shell script ffmpeg &amp; quoted form of inputfile &amp; " -filter_complex '[0:a]amerge=inputs=" &amp; numberofaudiotracks &amp; "[a]' -ac 2 -map 0:v -map '[a]' -vcodec libx264 -crf 15 -vf format=yuv420p -acodec aac -b:a 256k " &amp; quoted form of output						set end of filesConverted to outputbasename &amp; return		on error			display dialog "Error occured with file: " &amp; return &amp; return &amp; basename &amp; return &amp; return &amp; "This tool is designed with MOV filetypes in mind, other filetypes may produce errors. Results may vary." with title "QuickMP4" buttons {"Ok"} with icon stop		end try			end repeat		if (length of filesConverted = 0) then		error number -128	else if (length of filesConverted = 1) then		set conversiontext to "Conversion complete!"	else		set conversiontext to "Conversions complete!"	end if		display dialog conversiontext &amp; return &amp; return &amp; filesConverted as text with title "QuickMP4" buttons {"Thanks"}	end runon requirementsCheck(requirements)	set notinstalledList to {}	repeat with requirement in requirements		if (do shell script "test -f /usr/local/bin/" &amp; requirement &amp; " || echo 'notinstalled'") is "notinstalled" then			set end of notinstalledList to (requirement as text) &amp; return		end if	end repeat	return notinstalledListend requirementsCheckon splitText(theText, theDelimiter)	set AppleScript's text item delimiters to theDelimiter	set theTextItems to every text item of theText	set AppleScript's text item delimiters to ""	return theTextItemsend splitText</string>
+					<string>-- QuickMP4 - v1.2 --- Max Laurie 25/07/22-- Converts videos to a ~10mbps H264 with 2 channel audio.-- Requires ffmpeg and ffprobe installed to /usr/local/bin/-- 1.2 changelog-- 1.1 was actually broken, there was no downmixing, the transcode was discarding any audio tracks after track 2-- Added user choice to have the output contain 2 channels of audio, same as source or no channels of audio (video only)on run {input, parameters}		-- requirement check	set requirements to {"ffmpeg", "ffprobe"}	set notinstalledList to requirementsCheck(requirements)	if length of notinstalledList is greater than 0 then		display dialog "The following are required and not installed: " &amp; return &amp; return &amp; notinstalledList as text with title "QuickMP4" buttons {"Close"} with icon stop		return	end if		set userchoice to display dialog "Number of audio channels in output file" with title "QuickMP4" buttons {"Two", "Same as source", "None"}		set ffprobe to "/usr/local/bin/ffprobe "	set ffmpeg to "/usr/local/bin/ffmpeg -y -i "		-- create empty list for tracking files worked on	set filesConverted to {}		repeat with inputfile in input		try			-- set filepath, dirname, basename, output name and get no of audio tracks for input file			set inputfile to POSIX path of inputfile			set filepath to do shell script "dirname " &amp; quoted form of inputfile			set basename to do shell script "basename " &amp; quoted form of inputfile			set extension to do shell script "echo " &amp; quoted form of inputfile &amp; " | awk -F . '{print $NF}'"			if extension is not equal to "mov" then				display dialog "This tool can only be used on mov files." &amp; return &amp; return &amp; "Sorry." with title "QuickMP4" buttons {"That's ok"} with icon stop			end if			set fileandext to splitText(basename, ".")			set outputbasename to item 1 of fileandext &amp; ".mp4"			set output to filepath &amp; "/" &amp; outputbasename						if button returned of userchoice is "Two" then				ffmpegCommand2Channel(ffprobe, ffmpeg, inputfile, output)			else if button returned of userchoice is "Same as source" then				ffmpegCommandAsInput(ffmpeg, inputfile, output)			else if button returned of userchoice is "None" then				ffmpegCommandNoAudio(ffmpeg, inputfile, output)			end if						set end of filesConverted to outputbasename &amp; return		on error			display dialog "Error occured with file: " &amp; return &amp; return &amp; basename with title "QuickMP4" buttons {"Ok"} with icon stop		end try			end repeat		if (length of filesConverted = 0) then		error number -128	else if (length of filesConverted = 1) then		set conversiontext to "Conversion complete!"	else		set conversiontext to "Conversions complete!"	end if		display dialog conversiontext &amp; return &amp; return &amp; filesConverted as text with title "QuickMP4" buttons {"Thanks"}	end runon requirementsCheck(requirements)	set notinstalledList to {}	repeat with requirement in requirements		if (do shell script "test -f /usr/local/bin/" &amp; requirement &amp; " || echo 'notinstalled'") is "notinstalled" then			set end of notinstalledList to (requirement as text) &amp; return		end if	end repeat	return notinstalledListend requirementsCheckon splitText(theText, theDelimiter)	set AppleScript's text item delimiters to theDelimiter	set theTextItems to every text item of theText	set AppleScript's text item delimiters to ""	return theTextItemsend splitTexton ffmpegCommand2Channel(ffprobe, ffmpeg, inputfile, output)	set noOfAudioTracks to do shell script ffprobe &amp; "-v error -select_streams a -show_entries stream=index -of csv=p=0 " &amp; quoted form of inputfile &amp; " | wc -w | sed 's/^ *//g'"	do shell script ffmpeg &amp; quoted form of inputfile &amp; " -filter_complex '[0:a]amerge=inputs=" &amp; noOfAudioTracks &amp; "[a]' -ac 2 -map 0:v -map '[a]' -vcodec libx264 -crf 15 -vf format=yuv420p -acodec aac -b:a 256k " &amp; quoted form of outputend ffmpegCommand2Channelon ffmpegCommandAsInput(ffmpeg, inputfile, output)	do shell script ffmpeg &amp; quoted form of inputfile &amp; " -vcodec libx264 -crf 15 -vf format=yuv420p -acodec aac -b:a 256k -map 0:v -map 0:a " &amp; quoted form of outputend ffmpegCommandAsInputon ffmpegCommandNoAudio(ffmpeg, inputfile, output)	do shell script ffmpeg &amp; quoted form of inputfile &amp; " -vcodec libx264 -crf 15 -vf format=yuv420p -an -map 0:v " &amp; quoted form of outputend ffmpegCommandNoAudio</string>
 				</dict>
 				<key>BundleIdentifier</key>
 				<string>com.apple.Automator.RunScript</string>
@@ -103,14 +103,14 @@ end run</string>
 					</dict>
 				</dict>
 				<key>isViewVisible</key>
-				<integer>1</integer>
+				<true/>
 				<key>location</key>
-				<string>488.000000:1142.000000</string>
+				<string>559.500000:368.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run AppleScript.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
 			<key>isViewVisible</key>
-			<integer>1</integer>
+			<true/>
 		</dict>
 	</array>
 	<key>connectors</key>
@@ -137,7 +137,7 @@ end run</string>
 		<key>presentationMode</key>
 		<integer>15</integer>
 		<key>processesInput</key>
-		<false/>
+		<integer>0</integer>
 		<key>serviceApplicationBundleID</key>
 		<string>com.apple.finder</string>
 		<key>serviceApplicationPath</key>
@@ -147,11 +147,11 @@ end run</string>
 		<key>serviceOutputTypeIdentifier</key>
 		<string>com.apple.Automator.nothing</string>
 		<key>serviceProcessesInput</key>
-		<false/>
+		<integer>0</integer>
 		<key>systemImageName</key>
 		<string>NSTouchBarCommunicationVideo</string>
 		<key>useAutomaticInputType</key>
-		<false/>
+		<integer>0</integer>
 		<key>workflowTypeIdentifier</key>
 		<string>com.apple.Automator.servicesMenu</string>
 	</dict>
